@@ -1,0 +1,9 @@
+# database preparation
+bin/edit_imgt_file.pl {IMGT.fasta} > database/mouse_J/mouse_J.fa
+bin/makeblastdb -parse_seqids -dbtype nucl -in database/mouse_J/mouse_J.fa 
+
+# query sequence perparation
+
+
+# Igblast
+bin/igblastn -germline_db_J {full_directory_db_J.fa} -germline_db_D {full_directory_db_D.fa} -germline_db_V {full_directory_db_V.fa} -query {In.fasta} -domain_system imgt -organism mouse -ig_seqtype Ig -auxiliary_data ~/Analysis/tool/ncbi-igblast-1.17.1-x64-linux/ncbi-igblast-1.17.1/optional_file/mouse_gl.aux  -show_translation -outfmt 7 -num_threads 4 -out test.blast.output.7
