@@ -9,12 +9,14 @@ zcat {dir_.fastq.gz}| bgzip -@ 24 > bcxx.fastq.gz
 ex.
 zcat barcode01/*.fastq.gz | bgzip -@ 24 > bc01.fastq.gz
 
-# shell,  reference prepararion
-download from IMGT and combine V,D,J fasta file together by
-cat V.fa D.fa J.fa > heavy.fasta
+# shell,  reference prepararion, download from IMGT and combine V,D,J fasta file together by
+cat IGHV.fa IGHD.fa IGHJ.fa > heavy.fasta
+cat IGKV.fa IGKJ.fa > kappa.fasta
+cat IGLV.fa IGLJ.fa > lamda.fasta
 
 # shell, alignment
 minimap2 -k 10 -w 1 -Y --max-chain-skip=40 --MD -a -t 24 {dir_ref.fa} {dir_.fastq}| samtools view -b | samtools sort -@ 24 | bedtools bamtobed > barcode1.igh.bed
+
 
 # load the output .bed file to R to conlude germline information
 # R 
