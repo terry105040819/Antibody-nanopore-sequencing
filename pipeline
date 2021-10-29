@@ -1,0 +1,65 @@
+# shell,  basecalling for dircect cDNA sequencing
+guppy_basecaller --recursive --flowcell FLO-MIN106 --kit SQK-DCS109 -x cuda:0 -i {dir_.fast5} -s {dir_.fastq} --compress_fastq --disable_pings --num_callers 32 --min_qscore 7
+
+# shell,  demultiplex
+guppy_barcoder --require_barcodes_both_ends -i {dir_.fastq} -s {dir} --arrangements_files "barcode_arrs_nb12.cfg barcode_arrs_nb24.cfg" -x cuda:0
+
+# shell,  combine barcode fastq.gz
+zcat {dir_.fastq.gz}| bgzip -@ 24 > bcxx.fastq.gz
+ex.
+zcat barcode01/*.fastq.gz | bgzip -@ 24 > bc01.fastq.gz
+
+# shell,  reference prepararion
+download from IMGT and combine V,D,J fasta file together by
+cat V.fa D.fa J.fa > heavy.fasta
+
+# shell, alignment
+minimap2 -k 10 -w 1 -Y --max-chain-skip=40 --MD -a -t 24 {dir_ref.fa} {dir_.fastq}| samtools view -b | samtools sort -@ 24 | bedtools bamtobed > barcode1.igh.bed
+
+# load the output .bed file to R to conlude germline information
+# R 
+igh_bed <- read.delim(file = 'demul/barcode1.igh.bed', header = F, stringsAsFactors = F)
+
+for(i in seq(nrow(igh_bed)))
+{igh_bed[i,1] <- strsplit(x = igh_bed[i,1], split = '\\|')[[1]][2]}
+
+igh_table <- as.data.frame(table(igh_bed$V1))
+igh_table <- igh_table[order(igh_table$Freq, decreasing = T), ]
+igh_table[,1] <- as.character(igh_table[,1])
+
+## 
+#B <- igh_bed$V4[igh_bed$V1 %in% grep(x = igh_bed$V1,  pattern = '^{major_germline}', value = T)]
+##
+major_ig <- strsplit(igh_table[1,1], split = '\\*')[[1]][1]
+major_ig_reads <- unique(igh_bed$V4[igh_bed$V1 %in% grep(x = igh_bed$V1, pattern = major_ig, value = T)])
+
+for(i in seq_along(major_ig_reads))
+{major_ig_reads[i] <- paste('@', major_ig_reads[i], sep = '')}
+write.table(x = major_ig_reads, file = '{dir_major_ig_reads.txt}', quote = F, sep = '\t', row.names = F, col.names = F)
+
+
+# shell, grep fastq by major_ig_reads.txt and transfrom to .fasta
+grep -A 3 -f bc1_heavy_reads_name.txt bc1.fastq > bc1_heavy.fastq
+seqtk seq -a bc1_heavy.fastq > bc1_heavy.fa
+
+
+# shell, denovo assemble by shasta with 'sudo right'
+./shasta-Linux-0.8.0 --input bc1_heavy.fa --config Nanopore-Oct2021 --Reads.minReadLength 100 --memoryBacking 2M --memoryMode filesystem --assemblyDirectory {out.dir}
+
+# shell, correct the denovo assemble fasta by medaka (enhnace the consensus precision by nanopore reads)
+source ~/Analysis/tool/medaka/venv/bin/activate
+medaka_consensus -i {dir_original.fasta} -d {dir_assemble.fasta} -o {out.dir} -t 24
+
+-----------------------------------------------------------------------------------
+The corrected consensus is in the output file of medaka could be copied and pasted to IMGT for further analysis.
+
+ 
+
+
+
+
+
+
+
+
+
