@@ -1,3 +1,6 @@
+# how to set up igblast
+https://github.com/xinyu-dev/igblast
+
 # database preparation
 bin/edit_imgt_file.pl {IMGT.fasta} > database/mouse_J/mouse_J.fa
 bin/makeblastdb -parse_seqids -dbtype nucl -in database/mouse_J/mouse_J.fa 
