@@ -15,9 +15,17 @@ cat IGKV.fa IGKJ.fa > kappa.fasta
 cat IGLV.fa IGLJ.fa > lamda.fasta
 
 # shell, alignment
-minimap2 -k 10 -w 1 -Y --max-chain-skip=40 --MD -a -t 24 {dir_ref.fa} {dir_.fastq}| samtools view -b | samtools sort -@ 24 | bedtools bamtobed > barcode1.igh.bed
+minimap2 -k 10 -w 1 -Y --max-chain-skip=40 --MD -a -t 24 {dir_ref.fa} {dir_.fastq}| samtools view -F 4 -h | samtools sort -@ 24 > file.bam
+
+#convert .bam file to .fastq 
+samtools bam2fq aligned_file.bam > file.fastq
+
+#convert .fastq to .fasta
+seqtk seq -a bc1_heavy.fastq > bc1_heavy.fa
 
 
+bedtools bamtobed > barcode1.igh.bed
+#########################################################################################################
 # load the output .bed file to R to conlude germline information
 # R 
 igh_bed <- read.delim(file = 'demul/barcode1.igh.bed', header = F, stringsAsFactors = F)
@@ -44,6 +52,7 @@ write.table(x = major_ig_reads, file = '{dir_major_ig_reads.txt}', quote = F, se
 grep -A 3 -f bc1_heavy_reads_name.txt bc1.fastq > bc1_heavy.fastq
 seqtk seq -a bc1_heavy.fastq > bc1_heavy.fa
 
+##########################################################################################################
 
 # shell, denovo assemble by shasta with 'sudo right'
 ./shasta-Linux-0.8.0 --input bc1_heavy.fa --config Nanopore-Oct2021 --Reads.minReadLength 100 --memoryBacking 2M --memoryMode filesystem --assemblyDirectory {out.dir}
